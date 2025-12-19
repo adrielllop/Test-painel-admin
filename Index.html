@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Scripts Lua</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #f1f1f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            color: #6ee7b7;
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(90deg, #6ee7b7, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: #cbd5e1;
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .upload-section, .editor-section {
+            background-color: rgba(30, 41, 59, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .section-title {
+            color: #60a5fa;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title i {
+            font-size: 1.8rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3b82f6;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 25px;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .upload-area:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-color: #6ee7b7;
+        }
+        
+        .upload-area i {
+            font-size: 3.5rem;
+            color: #3b82f6;
+            margin-bottom: 15px;
+        }
+        
+        .upload-area h3 {
+            margin-bottom: 10px;
+            color: #f1f1f1;
+        }
+        
+        .upload-area p {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-button {
+            background: linear-gradient(to right, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            transition: all 0.3s;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+        
+        .upload-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        .upload-button:active {
+            transform: translateY(0);
+        }
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        .file-name {
+            color: #6ee7b7;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        
+        .file-size {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .editor-container {
+            margin-top: 20px;
+        }
+        
+        .editor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .editor-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background-color: rgba(15, 23, 42, 0.7);
+            color: #f1f1f1;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-valid {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        
+        .status-expired {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #3b82f6, #1d4ed8);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(to right, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(245, 158, 11, 0.4);
+        }
+        
+        .code-preview {
+            margin-top: 30px;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .code-title {
+            color: #60a5fa;
+            font-size: 1.2rem;
+        }
+        
+        .code-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .code-block {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            line-height: 1.5;
+        }
+        
+        .download-section {
+            background-color: rgba(30, 41, 59, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .download-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .download-card {
+            background-color: rgba(15, 23, 42, 0.7);
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid #475569;
+            transition: all 0.3s;
+        }
+        
+        .download-card:hover {
+            transform: translateY(-5px);
+            border-color: #3b82f6;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .download-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #60a5fa;
+        }
+        
+        .download-card h4 {
+            margin-bottom: 10px;
+            color: #f1f1f1;
+        }
+        
+        .download-card p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+        
+        .download-btn {
+            background: linear-gradient(to right, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .download-btn:hover {
+            background: linear-gradient(to right, #2563eb, #1e40af);
+        }
+        
+        .instructions {
+            background-color: rgba(30, 41, 59, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 40px;
+            border-left: 5px solid #8b5cf6;
+            backdrop-filter: blur(10px);
+        }
+        
+        .instructions h3 {
+            color: #8b5cf6;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+            line-height: 1.8;
+            color: #cbd5e1;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        
+        .instructions code {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #6ee7b7;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 38px;
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .current-date-btn {
+            background-color: #475569;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        
+        .current-date-btn:hover {
+            background-color: #64748b;
+        }
+        
+        .expiry-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 10px;
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .tag-new {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-code"></i> Editor de Scripts Lua</h1>
+            <p class="subtitle">Carregue um script Lua, edite login, senha e data de expiração, e baixe o arquivo modificado.</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="upload-section">
+                <h2 class="section-title"><i class="fas fa-cloud-upload-alt"></i> Upload do Arquivo</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-file-code"></i>
+                    <h3>Clique ou arraste seu arquivo .lua</h3>
+                    <p>Arquivos com extensão .lua até 10MB</p>
+                    <p class="pulse" style="margin-top: 15px; color: #6ee7b7;">
+                        <i class="fas fa-arrow-down"></i> Solte o arquivo aqui
+                    </p>
+                </div>
+                
+                <input type="file" id="fileInput" class="file-input" accept=".lua">
+                
+                <button class="upload-button" id="uploadButton">
+                    <i class="fas fa-upload"></i> Selecionar Arquivo Lua
+                </button>
+                
+                <div class="file-info" id="fileInfo">
+                    <p>Arquivo: <span class="file-name" id="fileName">Nenhum arquivo selecionado</span></p>
+                    <p class="file-size" id="fileSize">Tamanho: --</p>
+                </div>
+            </div>
+            
+            <div class="editor-section">
+                <h2 class="section-title"><i class="fas fa-edit"></i> Editor de Configurações</h2>
+                
+                <div class="editor-container">
+                    <div class="editor-grid">
+                        <div class="form-group">
+                            <label for="loginInput"><i class="fas fa-user"></i> Login</label>
+                            <input type="text" id="loginInput" class="form-control" placeholder="Digite o login">
+                        </div>
+                        
+                        <div class="form-group password-container">
+                            <label for="passwordInput"><i class="fas fa-lock"></i> Senha</label>
+                            <input type="password" id="passwordInput" class="form-control" placeholder="Digite a senha">
+                            <button type="button" class="toggle-password" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="expiryInput"><i class="fas fa-calendar-alt"></i> Data de Expiração</label>
+                            <input type="text" id="expiryInput" class="form-control" placeholder="DD/MM/AAAA">
+                            <button type="button" class="current-date-btn" id="currentDateBtn">
+                                Usar data atual + 30 dias
+                            </button>
+                            <div id="expiryStatus" class="expiry-status hidden"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="devicesInput"><i class="fas fa-mobile-alt"></i> Dispositivos Permitidos</label>
+                            <input type="number" id="devicesInput" class="form-control" placeholder="Número de dispositivos" min="1" max="99" value="1">
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="applyChangesBtn">
+                            <i class="fas fa-check-circle"></i> Aplicar Alterações
+                        </button>
+                        <button class="btn btn-warning" id="resetBtn">
+                            <i class="fas fa-redo"></i> Restaurar Valores Originais
+                        </button>
+                        <button class="btn btn-success" id="previewBtn">
+                            <i class="fas fa-eye"></i> Visualizar Código
+                        </button>
+                    </div>
+                    
+                    <div class="code-preview hidden" id="codePreview">
+                        <div class="code-header">
+                            <h3 class="code-title">Pré-visualização do Código</h3>
+                            <div class="code-actions">
+                                <button class="btn btn-primary" id="copyCodeBtn">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                        </div>
+                        <pre class="code-block" id="codeBlock"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="download-section">
+            <h2 class="section-title"><i class="fas fa-download"></i> Download do Arquivo</h2>
+            <p>Escolha uma das opções abaixo para baixar o arquivo Lua com as configurações editadas.</p>
+            
+            <div class="download-options">
+                <div class="download-card">
+                    <i class="fas fa-file-code"></i>
+                    <h4>Arquivo Original</h4>
+                    <p>Faça download do arquivo Lua exatamente como foi carregado, sem modificações.</p>
+                    <button class="download-btn" id="downloadOriginalBtn">
+                        <i class="fas fa-download"></i> Download Original
+                    </button>
+                </div>
+                
+                <div class="download-card">
+                    <i class="fas fa-file-export"></i>
+                    <h4>Arquivo Modificado</h4>
+                    <p>Baixe o arquivo Lua com as configurações que você editou.</p>
+                    <button class="download-btn" id="downloadModifiedBtn">
+                        <i class="fas fa-download"></i> Download Modificado
+                    </button>
+                </div>
+                
+                <div class="download-card">
+                    <i class="fas fa-file-alt"></i>
+                    <h4>Relatório JSON</h4>
+                    <p>Baixe um relatório em formato JSON com todas as informações extraídas.</p>
+                    <button class="download-btn" id="downloadReportBtn">
+                        <i class="fas fa-download"></i> Download Relatório
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> Como Funciona</h3>
+            <ol>
+                <li><strong>Carregue um arquivo Lua:</strong> Clique no botão de upload ou arraste e solte um arquivo .lua.</li>
+                <li><strong>Edite as configurações:</strong> Altere login, senha, data de expiração e número de dispositivos permitidos.</li>
+                <li><strong>Aplique as alterações:</strong> Clique em "Aplicar Alterações" para atualizar o código Lua.</li>
+                <li><strong>Visualize o código:</strong> Use o botão "Visualizar Código" para ver as mudanças no script.</li>
+                <li><strong>Faça download:</strong> Escolha entre baixar o arquivo original, modificado ou um relatório JSON.</li>
+                <li><strong>Formato esperado no arquivo Lua:</strong>
+                    <pre style="background-color: #1e293b; padding: 15px; border-radius: 8px; margin-top: 10px; color: #e2e8f0; font-family: 'Consolas', monospace;">
+-- Configurações de acesso
+LOGIN = "usuario123"
+SENHA = "senhaSecreta@2023"
+DATA_EXPIRACAO = "31/12/2023"
+DISPOSITIVOS = 3</pre>
+                </li>
+            </ol>
+        </div>
+        
+        <footer>
+            <p>Editor de Scripts Lua &copy; 2023 - Processamento 100% local no seu navegador</p>
+            <p style="margin-top: 5px; font-size: 0.8rem;">
+                <i class="fas fa-shield-alt"></i> Nenhum dado é enviado para servidores externos. Todo o processamento é feito localmente.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Elementos DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        
+        // Elementos do editor
+        const loginInput = document.getElementById('loginInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const expiryInput = document.getElementById('expiryInput');
+        const devicesInput = document.getElementById('devicesInput');
+        const togglePassword = document.getElementById('togglePassword');
+        const currentDateBtn = document.getElementById('currentDateBtn');
+        const expiryStatus = document.getElementById('expiryStatus');
+        
+        // Botões de ação
+        const applyChangesBtn = document.getElementById('applyChangesBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        
+        // Elementos de pré-visualização
+        const codePreview = document.getElementById('codePreview');
+        const codeBlock = document.getElementById('codeBlock');
+        const copyCodeBtn = document.getElementById('copyCodeBtn');
+        
+        // Botões de download
+        const downloadOriginalBtn = document.getElementById('downloadOriginalBtn');
+        const downloadModifiedBtn = document.getElementById('downloadModifiedBtn');
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+        
+        // Variáveis globais
+        let originalContent = '';
+        let currentContent = '';
+        let currentFileName = '';
+        let originalInfo = {
+            login: '',
+            password: '',
+            expiryDate: '',
+            devices: ''
+        };
+        let currentInfo = {
+            login: '',
+            password: '',
+            expiryDate: '',
+            devices: ''
+        };
+        
+        // Event listeners para upload
+        uploadButton.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#6ee7b7';
+            uploadArea.style.backgroundColor = 'rgba(110, 231, 183, 0.1)';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#3b82f6';
+            uploadArea.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#3b82f6';
+            uploadArea.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+        
+        // Quando um arquivo é selecionado
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+        
+        // Mostrar/ocultar senha
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            togglePassword.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+        
+        // Botão para usar data atual + 30 dias
+        currentDateBtn.addEventListener('click', () => {
+            const today = new Date();
+            const futureDate = new Date(today);
+            futureDate.setDate(today.getDate() + 30);
+            
+            const day = String(futureDate.getDate()).padStart(2, '0');
+            const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+            const year = futureDate.getFullYear();
+            
+            expiryInput.value = `${day}/${month}/${year}`;
+            updateExpiryStatus();
+        });
+        
+        // Atualizar status da data de expiração
+        expiryInput.addEventListener('input', updateExpiryStatus);
+        
+        function updateExpiryStatus() {
+            const dateStr = expiryInput.value.trim();
+            if (!dateStr) {
+                expiryStatus.classList.add('hidden');
+                return;
+            }
+            
+            const expiryDate = parseDate(dateStr);
+            if (!expiryDate) {
+                expiryStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Formato inválido';
+                expiryStatus.style.color = '#f87171';
+                expiryStatus.classList.remove('hidden');
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            expiryDate.setHours(0, 0, 0, 0);
+            
+            const diffTime = expiryDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                expiryStatus.innerHTML = `<i class="fas fa-calendar-times"></i> Expirou há ${Math.abs(diffDays)} dias`;
+                expiryStatus.style.color = '#f87171';
+            } else if (diffDays === 0) {
+                expiryStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Expira hoje';
+                expiryStatus.style.color = '#fbbf24';
+            } else if (diffDays <= 7) {
+                expiryStatus.innerHTML = `<i class="fas fa-calendar-week"></i> Expira em ${diffDays} dias`;
+                expiryStatus.style.color = '#fbbf24';
+            } else {
+                expiryStatus.innerHTML = `<i class="fas fa-calendar-check"></i> Válido por ${diffDays} dias`;
+                expiryStatus.style.color = '#4ade80';
+            }
+            
+            expiryStatus.classList.remove('hidden');
+        }
+        
+        // Aplicar alterações
+        applyChangesBtn.addEventListener('click', applyChanges);
+        
+        function applyChanges() {
+            // Validar campos
+            if (!loginInput.value.trim()) {
+                alert('Por favor, preencha o campo Login');
+                loginInput.focus();
+                return;
+            }
+            
+            if (!passwordInput.value.trim()) {
+                alert('Por favor, preencha o campo Senha');
+                passwordInput.focus();
+                return;
+            }
+            
+            if (!expiryInput.value.trim()) {
+                alert('Por favor, preencha o campo Data de Expiração');
+                expiryInput.focus();
+                return;
+            }
+            
+            // Validar data
+            const expiryDate = parseDate(expiryInput.value.trim());
+            if (!expiryDate) {
+                alert('Data de expiração inválida. Use o formato DD/MM/AAAA');
+                expiryInput.focus();
+                return;
+            }
+            
+            // Atualizar informações atuais
+            currentInfo.login = loginInput.value.trim();
+            currentInfo.password = passwordInput.value.trim();
+            currentInfo.expiryDate = expiryInput.value.trim();
+            currentInfo.devices = devicesInput.value.trim() || "1";
+            
+            // Atualizar conteúdo do arquivo
+            updateLuaContent();
+            
+            // Mostrar mensagem de sucesso
+            showNotification('Alterações aplicadas com sucesso!', 'success');
+            
+            // Mostrar pré-visualização
+            showCodePreview();
+        }
+        
+        // Restaurar valores originais
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Restaurar os valores originais do arquivo? As alterações não salvas serão perdidas.')) {
+                loadOriginalInfo();
+                showNotification('Valores originais restaurados', 'info');
+            }
+        });
+        
+        // Visualizar código
+        previewBtn.addEventListener('click', showCodePreview);
+        
+        function showCodePreview() {
+            if (!currentContent) {
+                alert('Por favor, carregue um arquivo Lua primeiro.');
+                return;
+            }
+            
+            codeBlock.textContent = currentContent;
+            codePreview.classList.remove('hidden');
+            
+            // Rolar até a pré-visualização
+            codePreview.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Copiar código
+        copyCodeBtn.addEventListener('click', () => {
+            const textToCopy = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Feedback visual
+                const originalHTML = copyCodeBtn.innerHTML;
+                copyCodeBtn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                copyCodeBtn.style.backgroundColor = '#10b981';
+                
+                setTimeout(() => {
+                    copyCodeBtn.innerHTML = originalHTML;
+                    copyCodeBtn.style.backgroundColor = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Erro ao copiar: ', err);
+                alert('Não foi possível copiar o código. Tente selecionar e copiar manualmente.');
+            });
+        });
+        
+        // Botões de download
+        downloadOriginalBtn.addEventListener('click', () => {
+            if (!originalContent) {
+                alert('Por favor, carregue um arquivo Lua primeiro.');
+                return;
+            }
+            
+            const nameWithoutExt = currentFileName.replace('.lua', '');
+            downloadFile(originalContent, `${nameWithoutExt}_original.lua`, 'text/plain');
+        });
+        
+        downloadModifiedBtn.addEventListener('click', () => {
+            if (!currentContent) {
+                alert('Por favor, carregue um arquivo Lua primeiro.');
+                return;
+            }
+            
+            const nameWithoutExt = currentFileName.replace('.lua', '');
+            downloadFile(currentContent, `${nameWithoutExt}_modificado.lua`, 'text/plain');
+        });
+        
+        downloadReportBtn.addEventListener('click', () => {
+            if (!currentContent) {
+                alert('Por favor, carregue um arquivo Lua primeiro.');
+                return;
+            }
+            
+            const report = {
+                arquivo: currentFileName,
+                data_extracao: new Date().toLocaleString('pt-BR'),
+                informacoes_originais: originalInfo,
+                informacoes_editadas: currentInfo,
+                status: {
+                    data_valida: parseDate(currentInfo.expiryDate) > new Date()
+                }
+            };
+            
+            const reportContent = JSON.stringify(report, null, 2);
+            const nameWithoutExt = currentFileName.replace('.lua', '');
+            downloadFile(reportContent, `${nameWithoutExt}_relatorio.json`, 'application/json');
+        });
+        
+        // Função para processar o arquivo
+        function handleFileUpload(file) {
+            // Verifica se é um arquivo .lua
+            if (!file.name.toLowerCase().endsWith('.lua')) {
+                alert('Por favor, selecione um arquivo com extensão .lua');
+                return;
+            }
+            
+            // Atualiza informações do arquivo
+            currentFileName = file.name;
+            fileName.textContent = currentFileName;
+            fileSize.textContent = `Tamanho: ${formatFileSize(file.size)}`;
+            fileInfo.classList.add('show');
+            
+            // Lê o conteúdo do arquivo
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                originalContent = e.target.result;
+                currentContent = originalContent;
+                
+                // Extrai informações do arquivo
+                extractLuaInfo(originalContent);
+                loadOriginalInfo();
+                
+                showNotification('Arquivo carregado com sucesso!', 'success');
+            };
+            
+            reader.readAsText(file);
+        }
+        
+        // Função para extrair informações do script Lua
+        function extractLuaInfo(content) {
+            // Expressões regulares para buscar as informações
+            const loginRegex = /LOGIN\s*[=:]\s*["']([^"']+)["']/i;
+            const passwordRegex = /SENHA\s*[=:]\s*["']([^"']+)["']/i;
+            const expiryRegex = /DATA_EXPIRACAO\s*[=:]\s*["']([^"']+)["']/i;
+            const devicesRegex = /DISPOSITIVOS\s*[=:]\s*(\d+)/i;
+            
+            // Busca por login
+            const loginMatch = content.match(loginRegex);
+            originalInfo.login = loginMatch ? loginMatch[1] : "";
+            
+            // Busca por senha
+            const passwordMatch = content.match(passwordRegex);
+            originalInfo.password = passwordMatch ? passwordMatch[1] : "";
+            
+            // Busca por data de expiração
+            const expiryMatch = content.match(expiryRegex);
+            originalInfo.expiryDate = expiryMatch ? expiryMatch[1] : "";
+            
+            // Busca por número de dispositivos
+            const devicesMatch = content.match(devicesRegex);
+            originalInfo.devices = devicesMatch ? devicesMatch[1] : "1";
+        }
+        
+        // Carregar informações originais nos campos
+        function loadOriginalInfo() {
+            loginInput.value = originalInfo.login;
+            passwordInput.value = originalInfo.password;
+            expiryInput.value = originalInfo.expiryDate;
+            devicesInput.value = originalInfo.devices;
+            
+            // Atualizar informações atuais
+            currentInfo = {...originalInfo};
+            
+            // Atualizar status da data
+            updateExpiryStatus();
+            
+            // Atualizar conteúdo do arquivo
+            currentContent = originalContent;
+        }
+        
+        // Atualizar conteúdo Lua com as informações atuais
+        function updateLuaContent() {
+            let updatedContent = originalContent;
+            
+            // Função para substituir ou adicionar uma variável
+            const replaceOrAddVariable = (content, varName, varValue) => {
+                const regex = new RegExp(`${varName}\\s*[=:]\\s*["']?[^"'\n]*["']?`, 'i');
+                
+                if (regex.test(content)) {
+                    // Substitui a variável existente
+                    return content.replace(regex, `${varName} = "${varValue}"`);
+                } else {
+                    // Adiciona a variável no início do arquivo
+                    return `-- Configurações de acesso\n${varName} = "${varValue}"\n\n${content}`;
+                }
+            };
+            
+            // Atualizar cada variável
+            updatedContent = replaceOrAddVariable(updatedContent, 'LOGIN', currentInfo.login);
+            updatedContent = replaceOrAddVariable(updatedContent, 'SENHA', currentInfo.password);
+            updatedContent = replaceOrAddVariable(updatedContent, 'DATA_EXPIRACAO', currentInfo.expiryDate);
+            updatedContent = replaceOrAddVariable(updatedContent, 'DISPOSITIVOS', currentInfo.devices);
+            
+            currentContent = updatedContent;
+        }
+        
+        // Função para analisar datas no formato brasileiro (dd/mm/yyyy)
+        function parseDate(dateString) {
+            const match = dateString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+            if (match) {
+                const day = parseInt(match[1], 10);
+                const month = parseInt(match[2], 10) - 1;
+                const year = parseInt(match[3], 10);
+                
+                const date = new Date(year, month, day);
+                if (date.getDate() === day && date.getMonth() === month && date.getFullYear() === year) {
+                    return date;
+                }
+            }
+            return null;
+        }
+        
+        // Função para formatar o tamanho do arquivo
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Função genérica para download de arquivo
+        function downloadFile(content, filename, mimeType) {
+            // Cria um blob com o conteúdo
+            const blob = new Blob([content], { type: mimeType });
+            
+            // Cria um link para download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Limpa
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            showNotification(`Download iniciado: ${filename}`, 'success');
+        }
+        
+        // Mostrar notificação
+        function showNotification(message, type) {
+            // Remove notificação anterior se existir
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            // Cria nova notificação
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="position: fixed; top: 20px; right: 20px; background-color: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'}; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease-out;">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove após 3 segundos
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+        }
+        
+        // Adicionar estilo de animação para notificação
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Carregar exemplo inicial
+        window.addEventListener('load', () => {
+            // Exemplo de arquivo Lua
+            const exampleLuaContent = `-- Configurações do sistema
+-- Este é um exemplo de script Lua com configurações de acesso
+
+LOGIN = "usuario_master"
+SENHA = "S3nh@F0rt3!2023"
+DATA_EXPIRACAO = "31/12/2023"
+DISPOSITIVOS = 5
+
+-- Função principal
+function main()
+    print("Bem-vindo ao sistema!")
+    print("Login: " .. LOGIN)
+    print("Dispositivos permitidos: " .. DISPOSITIVOS)
+    
+    -- Verificar validade
+    if verificarValidade() then
+        print("Sistema ativo até " .. DATA_EXPIRACAO)
+    else
+        print("Licença expirada!")
+    end
+end
+
+-- Função para verificar validade
+function verificarValidade()
+    -- Lógica de verificação aqui
+    return true
+end
+
+-- Inicializar sistema
+main()`;
+            
+            // Simular upload do exemplo
+            originalContent = exampleLuaContent;
+            currentContent = exampleLuaContent;
+            currentFileName = "exemplo_script.lua";
+            
+            // Extrair informações
+            extractLuaInfo(exampleLuaContent);
+            loadOriginalInfo();
+            
+            // Atualizar informações do arquivo
+            fileName.textContent = currentFileName;
+            fileSize.textContent = "Tamanho: 1.2 KB";
+            fileInfo.classList.add('show');
+            
+            // Mostrar notificação
+            showNotification('Exemplo carregado. Você pode editar os valores e baixar o arquivo modificado.', 'info');
+        });
+    </script>
+</body>
+</html>
