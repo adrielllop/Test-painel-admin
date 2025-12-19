@@ -198,6 +198,11 @@
             background-color: rgba(76, 201, 240, 0.2);
         }
         
+        .credential-expiration.expired {
+            background-color: rgba(247, 37, 133, 0.3);
+            color: #f72585;
+        }
+        
         .credential-password {
             font-family: monospace;
             background-color: rgba(0, 0, 0, 0.3);
@@ -409,6 +414,12 @@
             const expirationDate = document.getElementById('expirationDate').value;
             const scriptType = document.getElementById('scriptType').value;
             
+            // Validar data
+            if (new Date(expirationDate) < today) {
+                showNotification('A data de expiração não pode ser no passado!', 'error');
+                return;
+            }
+            
             // Criar objeto de credencial
             const credential = {
                 id: Date.now(),
@@ -450,18 +461,22 @@
             if (credentials.length === 0) {
                 emptyListMessage.style.display = 'block';
                 credentialsList.style.display = 'none';
-            } else {
-                emptyListMessage.style.display = 'none';
-                credentialsList.style.display = 'block';
-                
-                // Ordenar por data de criação (mais recente primeiro)
-                credentials.sort((a, b) => b.id - a.id);
-                
-                // Adicionar cada credencial à lista
-                credentials.forEach(credential => {
-                    addCredentialToList(credential);
-                });
+                return;
             }
+            
+            emptyListMessage.style.display = 'none';
+            credentialsList.style.display = 'block';
+            
+            // Ordenar por data de criação (mais recente primeiro)
+            credentials.sort((a, b) => b.id - a.id);
+            
+            // Limpar lista atual
+            credentialsList.innerHTML = '';
+            
+            // Adicionar cada credencial à lista
+            credentials.forEach(credential => {
+                addCredentialToList(credential);
+            });
         }
         
         // Função para adicionar credencial à lista na interface
@@ -481,13 +496,13 @@
             
             // Verificar se a credencial expirou
             const isExpired = new Date() > expirationDate;
-            const expirationClass = isExpired ? 'expired' : 'active';
-            const expirationText = isExpired ? 'Expirado' : `Expira em: ${formattedDate}`;
+            const expirationStatus = isExpired ? 'expired' : 'active';
+            const expirationText = isExpired ? `Expirado em: ${formattedDate}` : `Expira em: ${formattedDate}`;
             
             li.innerHTML = `
                 <div class="credential-header">
                     <span class="credential-login">${credential.login}</span>
-                    <span class="credential-expiration ${expirationClass}">${expirationText}</span>
+                    <span class="credential-expiration ${expirationStatus}">${expirationText}</span>
                 </div>
                 <div class="credential-password">Senha: ${credential.password}</div>
                 <div class="credential-actions">
@@ -509,16 +524,19 @@
         
         // Função para deletar credencial
         function deleteCredential(id) {
+            if (!confirm('Tem certeza que deseja excluir esta credencial?')) return;
+            
             let credentials = JSON.parse(localStorage.getItem('ggCredentials')) || [];
             credentials = credentials.filter(cred => cred.id !== id);
             localStorage.setItem('ggCredentials', JSON.stringify(credentials));
             
             // Remover da lista na interface
             const credentialElement = document.getElementById(`credential-${id}`);
-            credentialElement.remove();
+            if (credentialElement) credentialElement.remove();
             
             // Verificar se a lista ficou vazia
-            if (credentials.length === 0) {
+            const updatedCredentials = JSON.parse(localStorage.getItem('ggCredentials')) || [];
+            if (updatedCredentials.length === 0) {
                 emptyListMessage.style.display = 'block';
                 credentialsList.style.display = 'none';
             }
@@ -534,7 +552,10 @@
                 credential = credentials.find(c => c.id === credential);
             }
             
-            if (!credential) return;
+            if (!credential) {
+                showNotification('Credencial não encontrada!', 'error');
+                return;
+            }
             
             const expirationDate = new Date(credential.expirationDate);
             const formattedDate = expirationDate.toISOString().split('T')[0];
@@ -545,6 +566,8 @@
             if (credential.scriptType === 'lua') {
                 script = `-- Script de Autenticação para Game Guardian
 -- Criado em: ${new Date().toLocaleDateString('pt-BR')}
+-- Login: ${credential.login}
+-- Expira em: ${formattedDate}
 
 local login = "${credential.login}"
 local password = "${credential.password}"
@@ -560,11 +583,24 @@ function checkCredentials()
         return false
     end
     
-    -- Aqui você pode adicionar verificação de login/senha
-    -- Por exemplo, solicitar ao usuário
-    gg.alert("Script ativo até: " .. expirationDate .. "\\n\\nLogin: " .. login .. "\\nSenha: " .. password)
+    -- Solicitar credenciais do usuário
+    local inputLogin = gg.prompt({"Digite seu login:"}, {""}, {"text"})
+    local inputPassword = gg.prompt({"Digite sua senha:"}, {""}, {"text"})
     
-    return true
+    -- Verificar se o usuário cancelou
+    if not inputLogin or not inputPassword then
+        gg.toast("Autenticação cancelada")
+        return false
+    end
+    
+    -- Verificar credenciais
+    if inputLogin[1] == login and inputPassword[1] == password then
+        gg.toast("✅ Autenticação bem-sucedida!")
+        return true
+    else
+        gg.alert("❌ Credenciais inválidas!")
+        return false
+    end
 end
 
 -- Executar verificação
@@ -575,11 +611,18 @@ if checkCredentials() then
     -- EXEMPLO: Mostrar um toast no Game Guardian
     gg.toast("Script autenticado com sucesso!")
     
-    -- Seu código continua aqui...
+    -- ============================================
+    -- INSIRA SEU CÓDIGO DO GAME GUARDIAN AQUI
+    -- ============================================
+    
+else
+    gg.toast("Script não autorizado")
 end`;
             } else if (credential.scriptType === 'javascript') {
                 script = `// Script de Autenticação para Game Guardian
 // Criado em: ${new Date().toLocaleDateString('pt-BR')}
+// Login: ${credential.login}
+// Expira em: ${formattedDate}
 
 const login = "${credential.login}";
 const password = "${credential.password}";
@@ -595,10 +638,24 @@ function checkCredentials() {
         return false;
     }
     
-    // Aqui você pode adicionar verificação de login/senha
-    gg.alert("Script ativo até: " + expirationDate + "\\n\\nLogin: " + login + "\\nSenha: " + password);
+    // Solicitar credenciais do usuário
+    const inputLogin = gg.prompt(["Digite seu login:"], [""], ["text"]);
+    const inputPassword = gg.prompt(["Digite sua senha:"], [""], ["text"]);
     
-    return true;
+    // Verificar se o usuário cancelou
+    if (!inputLogin || !inputPassword) {
+        gg.toast("Autenticação cancelada");
+        return false;
+    }
+    
+    // Verificar credenciais
+    if (inputLogin[0] === login && inputPassword[0] === password) {
+        gg.toast("✅ Autenticação bem-sucedida!");
+        return true;
+    } else {
+        gg.alert("❌ Credenciais inválidas!");
+        return false;
+    }
 }
 
 // Executar verificação
@@ -609,11 +666,18 @@ if (checkCredentials()) {
     // EXEMPLO: Mostrar um toast no Game Guardian
     gg.toast("Script autenticado com sucesso!");
     
-    // Seu código continua aqui...
+    // ============================================
+    // INSIRA SEU CÓDIGO DO GAME GUARDIAN AQUI
+    // ============================================
+    
+} else {
+    gg.toast("Script não autorizado");
 }`;
             } else {
                 script = `-- Script Auto-executável para Game Guardian
 -- Criado em: ${new Date().toLocaleDateString('pt-BR')}
+-- Login: ${credential.login}
+-- Expira em: ${formattedDate}
 
 local login = "${credential.login}"
 local password = "${credential.password}"
@@ -627,20 +691,35 @@ if currentDate > expirationDate then
 end
 
 -- Menu de autenticação
+gg.toast("Script protegido - Expira em: " .. expirationDate)
 local auth = gg.choice({
     "🔑 Inserir Credenciais",
     "❌ Cancelar"
-}, nil, "Script Protegido\\nExpira em: " .. expirationDate)
+}, nil, "Autenticação Requerida")
 
 if auth == 1 then
     -- Solicitar credenciais
-    gg.alert("Credenciais necessárias:\\n\\nLogin: " .. login .. "\\nSenha: " .. password)
+    local inputLogin = gg.prompt({"Digite seu login:"}, {""}, {"text"})
+    local inputPassword = gg.prompt({"Digite sua senha:"}, {""}, {"text"})
     
-    -- Aqui você pode adicionar lógica de verificação
-    -- Por exemplo, solicitar entrada do usuário e comparar
+    -- Verificar se o usuário cancelou
+    if not inputLogin or not inputPassword then
+        gg.toast("Autenticação cancelada")
+        os.exit()
+    end
     
-    gg.toast("✅ Autenticação bem-sucedida!")
-    -- Seu código principal aqui...
+    -- Verificar credenciais
+    if inputLogin[1] == login and inputPassword[1] == password then
+        gg.toast("✅ Autenticação bem-sucedida!")
+        
+        -- ============================================
+        -- INSIRA SEU CÓDIGO DO GAME GUARDIAN AQUI
+        -- ============================================
+        
+    else
+        gg.alert("❌ Credenciais inválidas!")
+        os.exit()
+    end
 else
     gg.toast("Script cancelado")
     os.exit()
@@ -664,7 +743,7 @@ end`;
                 })
                 .catch(err => {
                     console.error('Erro ao copiar: ', err);
-                    showNotification('Erro ao copiar script.');
+                    showNotification('Erro ao copiar script.', 'error');
                 });
         });
         
@@ -676,13 +755,21 @@ end`;
                 })
                 .catch(err => {
                     console.error('Erro ao copiar: ', err);
-                    showNotification('Erro ao copiar senha.');
+                    showNotification('Erro ao copiar senha.', 'error');
                 });
         };
         
         // Mostrar notificação
-        function showNotification(message) {
+        function showNotification(message, type = 'success') {
             notification.textContent = message;
+            
+            // Definir cor baseada no tipo
+            if (type === 'error') {
+                notification.style.backgroundColor = '#f72585';
+            } else {
+                notification.style.backgroundColor = '#4cc9f0';
+            }
+            
             notification.classList.add('show');
             
             setTimeout(() => {
@@ -690,20 +777,24 @@ end`;
             }, 3000);
         }
         
-        // Exemplo de credenciais iniciais (para demonstração)
+        // Inicializar com um exemplo se não houver credenciais
         window.addEventListener('load', function() {
             // Verificar se já existem credenciais salvas
             const existingCredentials = JSON.parse(localStorage.getItem('ggCredentials')) || [];
             
             // Se não houver credenciais, adicionar um exemplo
             if (existingCredentials.length === 0) {
+                const exampleDate = new Date();
+                exampleDate.setDate(exampleDate.getDate() + 60);
+                const formattedDate = exampleDate.toISOString().split('T')[0];
+                
                 const exampleCredential = {
                     id: Date.now() - 1000,
                     login: "admin_gg",
                     password: "G@meGu@rd!@n2023",
-                    expirationDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 60 dias no futuro
+                    expirationDate: formattedDate,
                     scriptType: "lua",
-                    createdAt: new Date(Date.now() - 86400000).toISOString() // 1 dia atrás
+                    createdAt: new Date(Date.now() - 86400000).toISOString()
                 };
                 
                 saveCredential(exampleCredential);
